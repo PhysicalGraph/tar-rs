@@ -1279,12 +1279,10 @@ fn append_long_multibyte() {
     let mut x = tar::Builder::new(Vec::new());
     let mut name = String::new();
     let data: &[u8] = &[];
-    let mut header = Header::new_gnu();
-    header.set_size(data.len() as u64);
     for _ in 0..512 {
         name.push('a');
         name.push('𑢮');
-        x.append_data(&mut header, &name, data).unwrap();
+        x.append_data(&mut Header::new_gnu(), &name, data).unwrap();
         name.pop();
     }
 }
@@ -1386,32 +1384,4 @@ fn header_size_overflow() {
         "bad error: {}",
         err
     );
-}
-
-#[test]
-fn file_contents_appended_after_header_creation() {
-    let mut data = String::from("Hello");
-
-    let mut header = Header::new_gnu();
-    header.set_size(data.len() as u64);
-    header.set_cksum();
-
-    // Additional data is appended after header creation
-    data.push_str(", World!");
-
-    let mut ar = Builder::new(Vec::new());
-    t!(ar.append_data(&mut header, "test2", data.as_bytes()));
-
-    let raw = t!(ar.into_inner());
-    let mut ar = Archive::new(Cursor::new(raw));
-    let mut entries = t!(ar.entries());
-    let entry = t!(entries.next().unwrap());
-    let offset = entry.raw_file_position();
-    let mut raw = ar.into_inner();
-
-    let mut s = String::new();
-    raw.set_position(offset);
-    t!(raw.read_to_string(&mut s));
-    let s = s.trim_end_matches(char::from(0));
-    assert_eq!(s, "Hello");
 }
