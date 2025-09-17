@@ -3,6 +3,7 @@ use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 use std::str;
+use crate::safe_reader::SafeTruncateReader;
 
 use crate::header::{path2bytes, HeaderMode};
 use crate::{other, EntryType, Header};
@@ -521,7 +522,8 @@ fn append_file(
     mode: HeaderMode,
 ) -> io::Result<()> {
     let stat = file.metadata()?;
-    append_fs(dst, path, &stat, &mut file.take(stat.len()), mode, None)
+    let safe_reader = SafeTruncateReader::new(&*file)?;
+    append_fs(dst, path, &stat, &mut safe_reader.take(stat.len()), mode, None)
 }
 
 fn append_dir(
